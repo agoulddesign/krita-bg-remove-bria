@@ -17,4 +17,6 @@ Setup instructions:
 
 Please note this plugin was created mostly with the aid of AI, and may not be optimised properly. If you have any suggestions on improving it, please let me know.
 
+Created and tested with Krita 5.2.2. May not work with other versions.
+
 I hope you enjoy the power of automatic background removal in Krita!
