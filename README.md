@@ -1,9 +1,7 @@
 # krita-bg-remove-bria
 A simple plugin for Krita that automatically removes the background of an image using BriaAI's API in seconds
 
-COMING SOON!
-
-DOWNLOAD
+[DOWNLOAD](https://github.com/agoulddesign/krita-bg-remove-bria/releases/tag/1.0)
 
 Setup instructions:
   1. You will need a free BriaAI account and API key. As of the writing of this document, it doesn't require a credit card and includes 1000 uses per month and very reasonable prices after that (~ $0.08 per). Go to http://www.bria.ai to sign up.
