@@ -1,5 +1,5 @@
 # krita-bg-remove-bria
-A simple plugin for Krita that automatically removes the background of an image using BriaAI's API in seconds
+A simple plugin for Krita that quickly and automatically removes the background of an image using BriaAI's API. No need to load a third party app or website every time you need a subject isolated.
 
 [DOWNLOAD](https://github.com/agoulddesign/krita-bg-remove-bria/releases/tag/1.0)
 
@@ -20,3 +20,7 @@ Please note this plugin was created mostly with the aid of AI, and may not be op
 Created and tested with Krita 5.2.2. May not work with other versions.
 
 I hope you enjoy the power of automatic background removal in Krita!
+
+Known bug: Only works in RGBA color space
+
+Todo: Batch/multiple mode, placing the new layer just above the layer being removed
