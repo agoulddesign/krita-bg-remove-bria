@@ -1,6 +1,7 @@
 # krita-bg-remove-bria
 
 **A simple plugin for Krita that quickly and automatically removes the background of an image using BriaAI's API.**
+
 No need to load a third party app or website every time you need a subject isolated.
 
 [DOWNLOAD](https://github.com/agoulddesign/krita-bg-remove-bria/releases/tag/1.0)
@@ -17,16 +18,19 @@ No need to load a third party app or website every time you need a subject isola
 
 **Usage:**
 
-  Select the layer you want to remove the background of and click **Remove Background** (it may take a few seconds). It will then create a new layer with an alpha channel and background removed.
-  If the removal process doesn't work quite as expected you can use the alpha channel of the new layer as a transparency mask on the original layer and adjust accordingly.
+  1. Select the layer you want to remove the background of and click **Remove Background** (it may take a few seconds). It will then create a new layer with an alpha channel and background removed.
+     
+  2. The removal process doesn't work very well on images with depth of field or with a lot of subjects/objects in them, or if they're on many different levels (IE foreground, midground, background). If the removal doesn't work quite as expected you can transfer the alpha of the new layer with the background removed to the original layer as a transparency mask and adjust accordingly.
 
+**I hope you enjoy the power and ease of automatic background removal in Krita!**
 
-Please note this plugin was created mostly with the aid of AI, and may not be optimised properly. If you have any suggestions on improving it, please let me know.
+Please note this plugin was created mostly with the aid of AI, and may not be optimised properly. If you have any ideas on improving it, please feel free to do so!
 
 Created and tested with Krita 5.2.2. May not work with other versions.
 
-_Known bug: Only works in RGBA color space
+_I am in no way affiliated with BriaAI._
 
-Todo: Batch/multiple mode, placing the new layer just above the layer being removed_
+_Known bug: Only works in RGBA color space_
 
-**I hope you enjoy the power of automatic background removal in Krita!**
+_Todo: Batch/multiple mode, placing the new layer just above the layer being removed_
+
