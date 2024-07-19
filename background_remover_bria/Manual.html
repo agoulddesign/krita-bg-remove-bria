@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Remover BriaAI for Krita</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        h1 {
+            border-bottom: 2px solid;
+            padding-bottom: 10px;
+        }
+        a {
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .usage {
+            border-left: 4px solid;
+        }
+        .note {
+            font-style: italic;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <h1>Background Remover BriaAI v1.1</h1>
+    <p>A simple plugin for Krita that quickly and automatically removes the background of an image using BriaAI's API. No need to load a third party app or website every time you need a subject isolated.</p>
+
+    <h2>Usage:</h2>
+    <div class="usage">
+        <ol>
+            <li>You must first create an account and an API key on <a href="https://bria.ai/" target="_blank">https://bria.ai/</a>. Copy and paste the API key in the API key field.</li>
+            <li>Select the layer you want to remove the background of and click Remove Background (it may take a few seconds). It will then create a new layer with an alpha channel and background removed.</li>
+            <li>The removal process doesn't work very well on images with depth of field or with a lot of subjects/objects in them, or if they're on many different levels (i.e., foreground, midground, background). If the removal doesn't work quite as expected, you can transfer the alpha of the new layer with the background removed to the original layer as a transparency mask and adjust accordingly.</li>
+        </ol>
+    </div>
+
+    <p class="note">I hope you enjoy the power and ease of automatic background removal in Krita!</p>
+	
+	<p class="note">Please note this only works in RGBA color space</p>
+	
+    <p>Visit <a href="https://github.com/agoulddesign/krita-bg-remove-bria" target="_blank">https://github.com/agoulddesign/krita-bg-remove-bria</a> for the most recent version.</p>
+</body>
+</html>
