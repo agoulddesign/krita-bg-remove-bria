@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Service
-ServiceTypes=Krita/PythonPlugin
-X-KDE-Library=background_remover
-X-Python-2-Compatible=false
-X-Krita-Manual=Manual.html
-Name=Background Remover BreaAI
-Comment=Remove background using BreaAI API
