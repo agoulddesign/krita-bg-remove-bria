@@ -4,11 +4,12 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel
 from PyQt5.QtGui import QImage
 from PyQt5.QtCore import QRect
 import tempfile
+import ssl
 import os
+import sys
 import urllib.request
 import urllib.error
 import json
-import ssl
 
 class BackgroundRemover(QDockWidget):
     def __init__(self):
@@ -111,7 +112,19 @@ class BackgroundRemover(QDockWidget):
             }
             req = urllib.request.Request(url, data=body, headers=headers, method='POST')
             
+            # Check if we're on a Unix-like system (macOS or Linux)
+            if sys.platform.startswith('darwin') or sys.platform.startswith('linux'):
+                # Set the SSL certificate file path for macOS and Linux
+                cert_file = '/etc/ssl/cert.pem'
+                
+                # Check if the certificate file exists
+                if os.path.exists(cert_file):
+                    os.environ['SSL_CERT_FILE'] = cert_file
+                else:
+                    print(f"Warning: Certificate file {cert_file} not found.")
+            
             context = ssl.create_default_context()
+            
             with urllib.request.urlopen(req, timeout=30, context=context) as response:
                 self.status_label.setText("Waiting for server response...")
 
@@ -155,7 +168,10 @@ class BackgroundRemover(QDockWidget):
         except urllib.error.HTTPError as e:
             self.handle_error(e.code)
         except urllib.error.URLError as e:
-            self.status_label.setText(f"URLError: {str(e)}")
+                    if isinstance(e.reason, ssl.SSLCertVerificationError):
+                        self.status_label.setText("SSL Certificate verification failed. You may need to update your certificates.")
+                    else:
+                        self.status_label.setText(f"URLError: {str(e)}")
         except json.JSONDecodeError:
             self.status_label.setText("Error: Invalid JSON response")
         except Exception as e:
