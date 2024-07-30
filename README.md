@@ -4,7 +4,7 @@
 
 No need to load a third party app or website every time you need a subject isolated.
 
-[DOWNLOAD](https://github.com/agoulddesign/krita-bg-remove-bria/releases/tag/1.0)
+[DOWNLOAD](https://github.com/agoulddesign/krita-bg-remove-bria/releases/)
 
 **Setup instructions:**
 
@@ -26,7 +26,7 @@ No need to load a third party app or website every time you need a subject isola
 
 Please note this plugin was created mostly with the aid of AI, and may not be optimised properly. If you have any ideas on improving it, please feel free to do so!
 
-Created and tested with Krita 5.2.2. May not work with other versions.
+Created and tested with Krita 5.2.2 and 5.2.3. May not work with other versions.
 
 _I am in no way affiliated with BriaAI._
 
