@@ -1,15 +1,16 @@
-import krita
-from krita import Krita, DockWidgetFactory, DockWidgetFactoryBase, InfoObject
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel, QDockWidget
-from PyQt5.QtGui import QImage
-from PyQt5.QtCore import QRect
-import tempfile
-import ssl
 import os
 import sys
+import json
+import tempfile
 import urllib.request
 import urllib.error
-import json
+import ssl
+
+import krita
+from krita import Krita, DockWidgetFactory, DockWidgetFactoryBase, InfoObject
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel, QDockWidget, QApplication, QCheckBox
+from PyQt5.QtGui import QImage
+from PyQt5.QtCore import QRect
 
 class BackgroundRemover(QDockWidget):
     def __init__(self):
@@ -24,6 +25,9 @@ class BackgroundRemover(QDockWidget):
         self.api_key_input.setEchoMode(QLineEdit.Password)
         layout.addWidget(QLabel("API Key:"))
         layout.addWidget(self.api_key_input)
+        
+        self.batch_checkbox = QCheckBox("Batch")
+        layout.addWidget(self.batch_checkbox)
         
         self.remove_bg_button = QPushButton("Remove Background")
         self.remove_bg_button.clicked.connect(self.remove_background)
@@ -50,7 +54,9 @@ class BackgroundRemover(QDockWidget):
         app.writeSetting("BackgroundRemoverBriaAI", "api_key", self.api_key_input.text())
 
     def remove_background(self):
-    
+        # Clear the status_label field
+        self.status_label.setText("Preparing file and request...")
+        
         # Check if API key is blank
         api_key = self.api_key_input.text()
         if api_key == "":
@@ -59,15 +65,30 @@ class BackgroundRemover(QDockWidget):
         
         application = Krita.instance()
         document = application.activeDocument()
+        window = application.activeWindow()
+
         if not document:
             self.status_label.setText("No active document")
             return
 
-        active_node = document.activeNode()
-        if not active_node:
-            self.status_label.setText("No active layer")
+        if not window:
+            self.status_label.setText("No active window")
             return
 
+        view = window.activeView()
+        if not view:
+            self.status_label.setText("No active view")
+            return
+
+        nodes = [document.activeNode()] if not self.batch_checkbox.isChecked() else view.selectedNodes()
+        if not nodes:
+            self.status_label.setText("No active layer or no layers selected")
+            return
+
+        for node in nodes:
+            self.process_node(node, api_key, document)
+            
+    def process_node(self, node, api_key, document):
         # Prepare the temporary file path
         temp_dir = tempfile.gettempdir()
         temp_file = os.path.join(temp_dir, "temp_layer.png")
@@ -83,7 +104,7 @@ class BackgroundRemover(QDockWidget):
         export_params.setProperty("transparencyFillcolor", [0, 0, 0, 0])
 
         # Save the active node
-        active_node.save(temp_file, 1.0, 1.0, export_params, active_node.bounds())
+        node.save(temp_file, 1.0, 1.0, export_params, node.bounds())
 
         # Prepare the API request
         url = "https://engine.prod.bria-api.com/v1/background/remove"
@@ -91,6 +112,7 @@ class BackgroundRemover(QDockWidget):
 
         try:
             self.status_label.setText("Sending request to the server...")
+            QApplication.processEvents()
 
             # Prepare the multipart form data
             boundary = 'wL36Yn8afVp8Ag7AmP8qZ0SA4n1v9T'
@@ -120,22 +142,30 @@ class BackgroundRemover(QDockWidget):
                 # Check if the certificate file exists
                 if os.path.exists(cert_file):
                     os.environ['SSL_CERT_FILE'] = cert_file
+                    self.status_label.setText(f"Non-Windows OS detected, using certificate file: {cert_file}")
+                    QApplication.processEvents()
                 else:
-                    print(f"Warning: Certificate file {cert_file} not found.")
-            
+                    self.status_label.setText(f"Warning: Certificate file {cert_file} not found.")
+                    QApplication.processEvents()
+                    
             context = ssl.create_default_context()
             
             with urllib.request.urlopen(req, timeout=30, context=context) as response:
                 self.status_label.setText("Waiting for server response...")
-
+                QApplication.processEvents()
+                
                 if response.status == 200:
+                    self.status_label.setText("Response received from the server...")
+                    QApplication.processEvents()
+                    
                     # Parse the JSON response
                     response_data = json.loads(response.read().decode('utf-8'))
                     result_url = response_data.get('result_url')
                     
                     if result_url:
                         self.status_label.setText("Downloading processed image...")
-
+                        QApplication.processEvents()
+                        
                         # Download the image from the URL
                         result_file = os.path.join(temp_dir, "result_layer.png")
                         urllib.request.urlretrieve(result_url, result_file)
@@ -147,11 +177,15 @@ class BackgroundRemover(QDockWidget):
                             return
 
                         # Truncate the active node's name and append " BG Removed"
-                        new_layer_name = (active_node.name()[:20] + " NO BG")
+                        new_layer_name = (node.name()[:20] + " NO BG")
 
-                        # Create a new layer
+                        # Gets the index of the active layer and then hides it
+                        node_index = document.rootNode().childNodes().index(node)
+                        node.setVisible(False)
+                        
+                        # Create a new layer and move to same level as old layer
                         new_layer = document.createNode(new_layer_name, "paintlayer")
-                        document.rootNode().addChildNode(new_layer, None)
+                        document.rootNode().addChildNode(new_layer, node)
                         
                         # Set the pixel data of the new layer
                         width, height = image.width(), image.height()
