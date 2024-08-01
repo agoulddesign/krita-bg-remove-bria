@@ -2,11 +2,7 @@
 
 [![Download](https://img.shields.io/github/v/release/agoulddesign/krita-bg-remove-bria?style=for-the-badge&label=Download)](https://github.com/agoulddesign/krita-bg-remove-bria/releases/)
 
-
-
-![Krita Logo](https://raw.githubusercontent.com/agoulddesign/krita-bg-remove-bria/main/misc/krita03.png)
-
-
+[![Krita Logo](https://raw.githubusercontent.com/agoulddesign/krita-bg-remove-bria/main/misc/krita03.png)](https://krita.org)
 
 **A powerful Krita plugin for swift and automatic background removal using BriaAI's API.**
 
@@ -39,7 +35,7 @@ Say goodbye to massive servers or third-party apps – isolate subjects effortle
 ## About
 
 - BriaAI uses ethically trained, licensed material for their AI models, ensuring no copyright or ethical concerns.
-- This plugin is not affiliated with BriaAI.
+- This plugin is not affiliated with BriaAI or Krita.
 - Created primarily with AI assistance – optimizations welcome! Feel free to fork or submit pull requests.
 
 ## Compatibility
