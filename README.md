@@ -2,6 +2,12 @@
 
 [![Download](https://img.shields.io/github/v/release/agoulddesign/krita-bg-remove-bria?style=for-the-badge&label=Download)](https://github.com/agoulddesign/krita-bg-remove-bria/releases/)
 
+
+
+![Krita Logo](https://raw.githubusercontent.com/agoulddesign/krita-bg-remove-bria/main/misc/krita03.png)
+
+
+
 **A powerful Krita plugin for swift and automatic background removal using BriaAI's API.**
 
 Say goodbye to massive servers or third-party apps – isolate subjects effortlessly within Krita!
