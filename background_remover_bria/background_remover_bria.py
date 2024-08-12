@@ -1,10 +1,11 @@
 import os
 import sys
+import ssl
 import json
+import time
 import tempfile
 import urllib.request
 import urllib.error
-import ssl
 import threading
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -97,6 +98,9 @@ class BackgroundRemover(QDockWidget):
         self.status_label.setText("API Key saved")
 
     def remove_background(self):
+    
+        start_time= time.time()
+    
         # Clear the status_label field
         self.status_label.setText("Preparing file(s) and request(s)...")
         QApplication.processEvents()
@@ -179,17 +183,23 @@ class BackgroundRemover(QDockWidget):
         # Unset batch mode
         document.setBatchmode(False)
 
+        # End timing the process
+        end_time = time.time()
+
+        # Calculate the total time taken in milliseconds
+        total_time_ms = int((end_time - start_time) * 1000)
+
         # Final status update with system error check
         error_summary = "; ".join(error_messages)
         if success_count == 0:
             # No images processed successfully - possible system error
-            self.status_label.setText(f"System Error: No images were processed successfully. Please check your API key, internet connection, and the Bria API service status. {error_summary}")
+            self.status_label.setText(f"System Error: No images were processed successfully. Please check your API key, internet connection, and the Bria API service status. ({total_time_ms}ms) Error(s): {error_summary}")
         elif error_messages:
             # Some images processed, but with errors
-            self.status_label.setText(f"Completed with errors. Processed {success_count}/{total_count} successfully. Errors: {error_summary}")
+            self.status_label.setText(f"Completed with errors. Processed {success_count}/{total_count} successfully. ({total_time_ms}ms) Error(s): {error_summary}")
         else:
             # All images processed successfully
-            self.status_label.setText(f"All images processed successfully ({success_count}/{total_count})")
+            self.status_label.setText(f"All images processed successfully ({success_count}/{total_count}) ({total_time_ms}ms)")
 
         #QApplication.processEvents()
             
