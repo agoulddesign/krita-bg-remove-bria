@@ -4,9 +4,11 @@
 
 [![Krita Logo](https://raw.githubusercontent.com/agoulddesign/krita-bg-remove-bria/main/misc/krita05.png)](https://krita.org)
 
-**A powerful Krita plugin for swift and automatic background removal using BriaAI's API.**
+**A powerful Krita plugin for fast and automatic background removal using BriaAI's API.**
 
-Say goodbye to massive servers or third-party apps – isolate subjects effortlessly within Krita!
+**Now with super fast batch mode.**
+
+Say goodbye to massive servers or third-party apps – isolate subjects effortlessly and quickly within Krita!
 
 ## Setup Instructions
 
@@ -46,7 +48,7 @@ Say goodbye to massive servers or third-party apps – isolate subjects effortle
 ## Known Issues & Future Plans
 
 - **Bug**: Currently only works in RGBA color space
-- **Todo**: Implement batch/multiple mode and optimal layer placement (Coming Soon!)
+- **Todo**: Nothing now! Implemented batch mode and placement of layers on removal
 
 ---
 
