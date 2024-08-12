@@ -5,6 +5,8 @@ import tempfile
 import urllib.request
 import urllib.error
 import ssl
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import krita
 from krita import Krita, DockWidgetFactory, DockWidgetFactoryBase, InfoObject
@@ -26,7 +28,7 @@ class BackgroundRemover(QDockWidget):
         layout.addWidget(QLabel("API Key:"))
         layout.addWidget(self.api_key_input)
         
-        self.batch_checkbox = QCheckBox("Batch")
+        self.batch_checkbox = QCheckBox("Batch (all selected layers)")
         layout.addWidget(self.batch_checkbox)
         
         self.remove_bg_button = QPushButton("Remove Background")
@@ -46,16 +48,16 @@ class BackgroundRemover(QDockWidget):
 
     def load_api_key(self):
         app = Krita.instance()
-        api_key = app.readSetting("BackgroundRemoverBriaAI", "api_key", "")
+        api_key = app.readSetting("AGD_BriaAI", "api_key", "")
         self.api_key_input.setText(api_key)
 
     def save_api_key(self):
         app = Krita.instance()
-        app.writeSetting("BackgroundRemoverBriaAI", "api_key", self.api_key_input.text())
+        app.writeSetting("AGD_BriaAI", "api_key", self.api_key_input.text())
 
     def remove_background(self):
         # Clear the status_label field
-        self.status_label.setText("Preparing file and request...")
+        self.status_label.setText("Preparing file(s) and request(s)...")
         
         # Check if API key is blank
         api_key = self.api_key_input.text()
@@ -85,41 +87,53 @@ class BackgroundRemover(QDockWidget):
             self.status_label.setText("No active layer or no layers selected")
             return
 
-        for node in nodes:
-            self.process_node(node, api_key, document)
+        # Set batch mode
+        document.setBatchmode(True)
+
+        # Create a thread pool
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            # Submit tasks to the thread pool
+            futures = [executor.submit(self.process_node, node, api_key, document) for node in nodes]
+
+            # Update status as tasks complete
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                    self.status_label.setText(f"Processed: {result[:27]}..." if len(result) > 30 else result)
+                    QApplication.processEvents()
+                except Exception as e:
+                    self.status_label.setText(f"Error: {error_msg[:23]}..." if len(error_msg) > 30 else f"Error: {error_msg}")
+                    QApplication.processEvents()
+
+        # Unset batch mode
+        document.setBatchmode(False)
+
+        self.status_label.setText("All images processed")
             
     def process_node(self, node, api_key, document):
         # Prepare the temporary file path
         temp_dir = tempfile.gettempdir()
-        temp_file = os.path.join(temp_dir, "temp_layer.png")
+        temp_file = os.path.join(temp_dir, f"temp_layer_{threading.get_ident()}.jpg")
 
         # Create an InfoObject for export configuration
         export_params = InfoObject()
-        export_params.setProperty("alpha", True)
-        export_params.setProperty("compression", 9)
+        export_params.setProperty("quality", 100)
         export_params.setProperty("forceSRGB", False)
-        export_params.setProperty("indexed", False)
-        export_params.setProperty("interlaced", False)
         export_params.setProperty("saveSRGBProfile", False)
-        export_params.setProperty("transparencyFillcolor", [0, 0, 0, 0])
 
         # Save the active node
         node.save(temp_file, 1.0, 1.0, export_params, node.bounds())
 
         # Prepare the API request
         url = "https://engine.prod.bria-api.com/v1/background/remove"
-        api_key = self.api_key_input.text()
 
         try:
-            self.status_label.setText("Sending request to the server...")
-            QApplication.processEvents()
-
             # Prepare the multipart form data
             boundary = 'wL36Yn8afVp8Ag7AmP8qZ0SA4n1v9T'
             data = []
             data.append(f'--{boundary}'.encode())
-            data.append(b'Content-Disposition: form-data; name="file"; filename="temp_layer.png"')
-            data.append(b'Content-Type: image/png')
+            data.append(b'Content-Disposition: form-data; name="file"; filename="temp_layer.jpg"')
+            data.append(b'Content-Type: image/jpg')
             data.append(b'')
             with open(temp_file, 'rb') as f:
                 data.append(f.read())
@@ -142,42 +156,29 @@ class BackgroundRemover(QDockWidget):
                 # Check if the certificate file exists
                 if os.path.exists(cert_file):
                     os.environ['SSL_CERT_FILE'] = cert_file
-                    self.status_label.setText(f"Non-Windows OS detected, using certificate file: {cert_file}")
-                    QApplication.processEvents()
                 else:
-                    self.status_label.setText(f"Warning: Certificate file {cert_file} not found.")
-                    QApplication.processEvents()
+                    return f"Warning: Certificate file {cert_file} not found."
                     
             context = ssl.create_default_context()
             
             with urllib.request.urlopen(req, timeout=30, context=context) as response:
-                self.status_label.setText("Waiting for server response...")
-                QApplication.processEvents()
-                
                 if response.status == 200:
-                    self.status_label.setText("Response received from the server...")
-                    QApplication.processEvents()
-                    
                     # Parse the JSON response
                     response_data = json.loads(response.read().decode('utf-8'))
                     result_url = response_data.get('result_url')
                     
                     if result_url:
-                        self.status_label.setText("Downloading processed image...")
-                        QApplication.processEvents()
-                        
                         # Download the image from the URL
-                        result_file = os.path.join(temp_dir, "result_layer.png")
+                        result_file = os.path.join(temp_dir, f"result_layer_{threading.get_ident()}.png")
                         urllib.request.urlretrieve(result_url, result_file)
 
                         # Load the image using QImage
                         image = QImage(result_file)
                         if image.isNull():
-                            self.status_label.setText("Failed to load the result image")
-                            return
+                            return "Failed to load the result image"
 
                         # Truncate the active node's name and append " BG Removed"
-                        new_layer_name = (node.name()[:20] + " NO BG")
+                        new_layer_name = (node.name() + " NO BG")
 
                         # Gets the index of the active layer and then hides it
                         node_index = document.rootNode().childNodes().index(node)
@@ -193,23 +194,23 @@ class BackgroundRemover(QDockWidget):
                         new_layer.setPixelData(pixel_data, 0, 0, width, height)
                         
                         document.refreshProjection()
-                        self.status_label.setText("Background removed successfully")
+                        return f"Background removed successfully for {node.name()}"
                     else:
-                        self.status_label.setText("Error: No result URL in response")
+                        return "Error: No result URL in response"
                 else:
-                    self.handle_error(response.status)
+                    return self.handle_error(response.status)
 
         except urllib.error.HTTPError as e:
-            self.handle_error(e.code)
+            return self.handle_error(e.code)
         except urllib.error.URLError as e:
-                    if isinstance(e.reason, ssl.SSLCertVerificationError):
-                        self.status_label.setText("SSL Certificate verification failed. You may need to update your certificates.")
-                    else:
-                        self.status_label.setText(f"URLError: {str(e)}")
+            if isinstance(e.reason, ssl.SSLCertVerificationError):
+                return "SSL Certificate verification failed. You may need to update your certificates."
+            else:
+                return f"URLError: {str(e)}"
         except json.JSONDecodeError:
-            self.status_label.setText("Error: Invalid JSON response")
+            return "Error: Invalid JSON response"
         except Exception as e:
-            self.status_label.setText(f"Unexpected error: {str(e)}")
+            return f"Unexpected error: {str(e)}"
             
         finally:
             # Clean up temporary files
@@ -228,7 +229,7 @@ class BackgroundRemover(QDockWidget):
             500: "Internal server error.",
             506: "Insufficient data. The given input is not supported by the Bria API."
         }
-        self.status_label.setText(f"Error: {error_messages.get(status_code, 'Unknown error')}")
+        return f"Error: {error_messages.get(status_code, 'Unknown error')}"
 
     def canvasChanged(self, canvas):
         pass
