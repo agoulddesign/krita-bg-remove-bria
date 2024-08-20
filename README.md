@@ -4,9 +4,9 @@
 
 [![Krita Logo](https://raw.githubusercontent.com/agoulddesign/krita-bg-remove-bria/main/misc/krita05.png)](https://krita.org)
 
-**A powerful Krita plugin for fast and automatic background removal using BriaAI's API.**
+### A powerful Krita plugin for fast and automatic background removal using BriaAI's API.
 
-**Now with super fast batch mode.**
+**Now with lightning fast batch mode.**
 
 Say goodbye to massive servers or third-party apps – isolate subjects effortlessly and quickly within Krita!
 
@@ -28,9 +28,31 @@ Say goodbye to massive servers or third-party apps – isolate subjects effortle
 
 ## Usage
 
-1. Select the layer for background removal.
-2. Click **Remove Background** (processing may take a few seconds).
-3. A new layer with an alpha channel and removed background will be created.
+1. Select the layer(s) for background removal. Select **Batch** mode for multiple.
+2. Click **Remove Background**. Processing may take a few seconds.
+3. New layer(s) with an alpha channel and removed background will be created.
+
+## Important Considerations
+
+### Alpha Channel and Transparency
+
+- Removing the background of a layer that already has an alpha channel (transparency) can result in odd placement of the resulting image.
+- To fix this, turn the original layer back on and align it to the original.
+- It is recommended to fill in any transparent areas before removing the background.
+
+### Image Dimensions and Boundaries
+
+- Removing the background of images with different dimensions, or images that extend beyond the visible area, may result in unexpected results.
+- For best results, ensure all layers are the same size and do not extend past the visible area.
+
+### Batch Mode Processing
+
+When processing a large number of layers:
+
+- You can set the number of concurrent working processes (threads) to automatic or increase it to speed up the process.
+- Be cautious when increasing threads, as it may cause stability issues, especially on older/slower computers.
+- The default setting uses the same number of threads as the number of cores in your processor(s).
+
 
 > **Note**: The removal process works best on images with clear subjects and minimal depth of field. For complex images, you may need to transfer the alpha of the new layer to the original as a transparency mask for further adjustments.
 
@@ -52,4 +74,4 @@ Say goodbye to massive servers or third-party apps – isolate subjects effortle
 
 ---
 
-**Enjoy the power and simplicity of automatic background removal in Krita!**
+### Enjoy the power and simplicity of automatic background removal in Krita!
