@@ -12,8 +12,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import krita
 from krita import Krita, DockWidgetFactory, DockWidgetFactoryBase, InfoObject
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel, QDockWidget, QApplication, QCheckBox, QSpinBox, QTextEdit, QProgressDialog
-from PyQt5.QtGui import QImage
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel, QDockWidget, QApplication, QCheckBox, QSpinBox, QTextEdit, QProgressDialog, QHBoxLayout, QMessageBox, QGroupBox
+from PyQt5.QtGui import QImage, QClipboard
 from PyQt5.QtCore import QRect, Qt
 
 class BackgroundRemover(QDockWidget):
@@ -25,43 +25,73 @@ class BackgroundRemover(QDockWidget):
         layout = QVBoxLayout()
         widget.setLayout(layout)
         
+        api_key_layout = QHBoxLayout()
+        api_key_label = QLabel("API Key:")
         self.api_key_input = QLineEdit()
         self.api_key_input.setEchoMode(QLineEdit.Password)
-        layout.addWidget(QLabel("API Key:"))
-        layout.addWidget(self.api_key_input)
+        api_key_layout.addWidget(api_key_label)
+        api_key_layout.addWidget(self.api_key_input)
+        layout.addLayout(api_key_layout)
         
-        self.batch_checkbox = QCheckBox("Batch (all selected layers)")
-        self.batch_checkbox.stateChanged.connect(self.toggle_batch_mode)  # Connect to toggle_batch_mode method
-        layout.addWidget(self.batch_checkbox)
+        batch_layout = QHBoxLayout()
+        self.batch_checkbox = QCheckBox("Batch (selected layers)")
+        self.batch_checkbox.stateChanged.connect(self.toggle_batch_mode)
+        batch_layout.addWidget(self.batch_checkbox)
         
-        self.auto_thread_checkbox = QCheckBox("Threads (Auto)")
+        # Advanced options
+        self.advanced_checkbox = QCheckBox("Advanced")
+        self.advanced_checkbox.stateChanged.connect(self.toggle_advanced_options)
+        batch_layout.addWidget(self.advanced_checkbox)
+        
+        layout.addLayout(batch_layout)
+
+        self.advanced_group = QGroupBox("Advanced Options")
+        advanced_layout = QVBoxLayout()
+        self.advanced_group.setLayout(advanced_layout)
+        self.advanced_group.setVisible(False)
+
+        thread_layout = QHBoxLayout()
+        self.auto_thread_checkbox = QCheckBox("Threads (AUTO)")
         self.auto_thread_checkbox.setChecked(True)  # Default is auto
         self.auto_thread_checkbox.stateChanged.connect(self.toggle_thread_count)
-        self.auto_thread_checkbox.setVisible(False)  # Initially hidden
-        layout.addWidget(self.auto_thread_checkbox)
-        
+        thread_layout.addWidget(self.auto_thread_checkbox)
+
         self.thread_count_spinbox = QSpinBox()
         self.thread_count_spinbox.setMinimum(1)
-        self.thread_count_spinbox.setValue(os.cpu_count() or multiprocessing.cpu_count())  # Default to max threads
-        self.thread_count_spinbox.setVisible(False)  # Initially hidden
-        layout.addWidget(self.thread_count_spinbox)
-        
+        self.thread_count_spinbox.setValue(os.cpu_count() or multiprocessing.cpu_count())
+        self.thread_count_spinbox.setVisible(False)
+        thread_layout.addWidget(self.thread_count_spinbox)
+
+        advanced_layout.addLayout(thread_layout)
+
         self.debug_checkbox = QCheckBox("Debug Mode")
         self.debug_checkbox.stateChanged.connect(self.toggle_debug_mode)
-        layout.addWidget(self.debug_checkbox)
+        advanced_layout.addWidget(self.debug_checkbox)
 
-        self.open_temp_dir_button = QPushButton("Open Temp Directory")
+        layout.addWidget(self.advanced_group)
+
+        button_layout = QHBoxLayout()
+        
+        self.remove_bg_button = QPushButton("Remove")
+        self.remove_bg_button.clicked.connect(self.remove_background)
+        button_layout.addWidget(self.remove_bg_button)
+
+        self.open_temp_dir_button = QPushButton("Open Dir")
         self.open_temp_dir_button.clicked.connect(self.open_temp_directory)
         self.open_temp_dir_button.setVisible(False)
-        layout.addWidget(self.open_temp_dir_button)
+        button_layout.addWidget(self.open_temp_dir_button)
 
-        self.remove_bg_button = QPushButton("Remove Background")
-        self.remove_bg_button.clicked.connect(self.remove_background)
-        layout.addWidget(self.remove_bg_button)
+        self.copy_text_button = QPushButton("Copy Text")
+        self.copy_text_button.clicked.connect(self.copy_status_text)
+        self.copy_text_button.setVisible(False)
+        button_layout.addWidget(self.copy_text_button)
+
+        layout.addLayout(button_layout)
         
         self.status_label = QTextEdit()
         self.status_label.setReadOnly(True)
         self.status_label.setLineWrapMode(QTextEdit.WidgetWidth)
+        self.status_label.setMinimumHeight(25)  # Set a default minimum height
         layout.addWidget(self.status_label)
         
         self.setWidget(widget)
@@ -72,23 +102,34 @@ class BackgroundRemover(QDockWidget):
         # Connect textChanged signal to save_api_key method
         self.api_key_input.textChanged.connect(self.save_api_key)
         
-    #Toggle visibility of thread count settings based on batch mode state.
-    def toggle_batch_mode(self):
-        if self.batch_checkbox.isChecked():
-            self.auto_thread_checkbox.setVisible(True)
-            self.toggle_thread_count()  # Adjust visibility of the spinbox based on auto thread checkbox
-        else:
-            self.auto_thread_checkbox.setVisible(False)
-            self.thread_count_spinbox.setVisible(False)
-        
-    def toggle_thread_count(self):
-        if self.auto_thread_checkbox.isChecked():
-            self.thread_count_spinbox.setVisible(False)
-        else:
-            self.thread_count_spinbox.setVisible(True)
+    def toggle_advanced_options(self):
+        is_advanced = self.advanced_checkbox.isChecked()
+        self.advanced_group.setVisible(is_advanced)
+        self.update_debug_buttons_visibility()
+        self.toggle_batch_mode()  # Update thread visibility
 
+    def toggle_thread_count(self):
+        self.thread_count_spinbox.setVisible(not self.auto_thread_checkbox.isChecked())
+
+    def copy_status_text(self):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(self.status_label.toPlainText())
+        QMessageBox.information(self, "Copied", "Status text copied to clipboard.", QMessageBox.Ok)
+
+    def toggle_batch_mode(self):
+        is_batch = self.batch_checkbox.isChecked()
+        is_advanced = self.advanced_checkbox.isChecked()
+        self.auto_thread_checkbox.setVisible(is_batch and is_advanced)
+        self.thread_count_spinbox.setVisible(is_batch and is_advanced and not self.auto_thread_checkbox.isChecked())
+        
     def toggle_debug_mode(self):
-        self.open_temp_dir_button.setVisible(self.debug_checkbox.isChecked())
+        self.update_debug_buttons_visibility()
+
+    def update_debug_buttons_visibility(self):
+        is_advanced = self.advanced_checkbox.isChecked()
+        debug_mode = self.debug_checkbox.isChecked()
+        self.open_temp_dir_button.setVisible(is_advanced and debug_mode)
+        self.copy_text_button.setVisible(is_advanced and debug_mode)
 
     def open_temp_directory(self):
         temp_dir = tempfile.gettempdir()
@@ -187,10 +228,10 @@ class BackgroundRemover(QDockWidget):
         error_messages = []
         
         # Determine max_workers based on user selection
-        if self.auto_thread_checkbox.isChecked():
-            max_workers = os.cpu_count() or multiprocessing.cpu_count()
-        else:
+        if self.advanced_checkbox.isChecked() and not self.auto_thread_checkbox.isChecked():
             max_workers = self.thread_count_spinbox.value()
+        else:
+            max_workers = os.cpu_count() or multiprocessing.cpu_count()
         
         # Set batch mode
         document.setBatchmode(True)
@@ -377,6 +418,11 @@ class BackgroundRemover(QDockWidget):
 
     def canvasChanged(self, canvas):
         pass
+
+    def copy_status_text(self):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(self.status_label.toPlainText())
+        QMessageBox.information(self, "Copied", "Status text copied to clipboard.", QMessageBox.Ok)
 
 class BackgroundRemoverExtension(krita.Extension):
 
