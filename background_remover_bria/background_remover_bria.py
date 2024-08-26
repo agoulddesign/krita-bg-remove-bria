@@ -12,9 +12,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import krita
 from krita import Krita, DockWidgetFactory, DockWidgetFactoryBase, InfoObject
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel, QDockWidget, QApplication, QCheckBox, QSpinBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel, QDockWidget, QApplication, QCheckBox, QSpinBox, QTextEdit, QProgressDialog
 from PyQt5.QtGui import QImage
-from PyQt5.QtCore import QRect
+from PyQt5.QtCore import QRect, Qt
 
 class BackgroundRemover(QDockWidget):
     def __init__(self):
@@ -46,12 +46,22 @@ class BackgroundRemover(QDockWidget):
         self.thread_count_spinbox.setVisible(False)  # Initially hidden
         layout.addWidget(self.thread_count_spinbox)
         
+        self.debug_checkbox = QCheckBox("Debug Mode")
+        self.debug_checkbox.stateChanged.connect(self.toggle_debug_mode)
+        layout.addWidget(self.debug_checkbox)
+
+        self.open_temp_dir_button = QPushButton("Open Temp Directory")
+        self.open_temp_dir_button.clicked.connect(self.open_temp_directory)
+        self.open_temp_dir_button.setVisible(False)
+        layout.addWidget(self.open_temp_dir_button)
+
         self.remove_bg_button = QPushButton("Remove Background")
         self.remove_bg_button.clicked.connect(self.remove_background)
         layout.addWidget(self.remove_bg_button)
         
-        self.status_label = QLabel()
-        self.status_label.setWordWrap(True)  # Enable word wrap to make the label multi-line
+        self.status_label = QTextEdit()
+        self.status_label.setReadOnly(True)
+        self.status_label.setLineWrapMode(QTextEdit.WidgetWidth)
         layout.addWidget(self.status_label)
         
         self.setWidget(widget)
@@ -77,6 +87,18 @@ class BackgroundRemover(QDockWidget):
         else:
             self.thread_count_spinbox.setVisible(True)
 
+    def toggle_debug_mode(self):
+        self.open_temp_dir_button.setVisible(self.debug_checkbox.isChecked())
+
+    def open_temp_directory(self):
+        temp_dir = tempfile.gettempdir()
+        if sys.platform.startswith('darwin'):  # macOS
+            subprocess.call(['open', temp_dir])
+        elif sys.platform.startswith('win'):  # Windows
+            os.startfile(temp_dir)
+        else:  # Linux and other Unix-like
+            subprocess.call(['xdg-open', temp_dir])
+
     def load_api_key(self):
         app = Krita.instance()
         
@@ -98,41 +120,52 @@ class BackgroundRemover(QDockWidget):
         self.status_label.setText("API Key saved")
 
     def remove_background(self):
-    
-        start_time= time.time()
-    
+        start_time = time.time()
+
+        # Create a progress dialog
+        progress = QProgressDialog("Removing background...", "Cancel", 0, 100, Krita.instance().activeWindow().qwindow())
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setValue(0)
+        progress.show()
+
         # Clear the status_label field
         self.status_label.setText("Preparing file(s) and request(s)...")
         QApplication.processEvents()
-        
+
         # Check if API key is blank
         api_key = self.api_key_input.text()
         if api_key == "":
             self.status_label.setText("Error: API key is blank. Please enter a valid API key.")
+            progress.close()
             return
-        
+
         application = Krita.instance()
         document = application.activeDocument()
         window = application.activeWindow()
 
         if not document:
             self.status_label.setText("No active document")
+            progress.close()
             return
 
         if not window:
             self.status_label.setText("No active window")
+            progress.close()
             return
 
         view = window.activeView()
         if not view:
             self.status_label.setText("No active view")
+            progress.close()
             return
 
         nodes = [document.activeNode()] if not self.batch_checkbox.isChecked() else view.selectedNodes()
         if not nodes:
             self.status_label.setText("No active layer or no layers selected")
+            progress.close()
             return
-            
+
         # Check if we're on a Unix-like system (macOS or Linux)
         if sys.platform.startswith('darwin') or sys.platform.startswith('linux'):
             # Set the SSL certificate file path for macOS and Linux
@@ -162,6 +195,8 @@ class BackgroundRemover(QDockWidget):
         # Set batch mode
         document.setBatchmode(True)
 
+        progress.setValue(10)
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [executor.submit(self.process_node, node, api_key, document, context) for node in nodes]
 
@@ -173,7 +208,8 @@ class BackgroundRemover(QDockWidget):
                         success_count += 1
                     else:
                         error_messages.append(result)
-                    self.status_label.setText(f"Processed {processed_count}/{total_count}: {result}")
+                    self.status_label.append(f"Processed {processed_count}/{total_count}: {result}")
+                    progress.setValue(10 + int(90 * processed_count / total_count))
                 except Exception as e:
                     processed_count += 1
                     error_messages.append(f"Error: {str(e)}")
@@ -189,32 +225,34 @@ class BackgroundRemover(QDockWidget):
         # Calculate the total time taken in milliseconds
         total_time_ms = int((end_time - start_time) * 1000)
 
-        # Final status update with system error check
-        error_summary = "; ".join(error_messages)
-        if success_count == 0:
-            # No images processed successfully - possible system error
-            self.status_label.setText(f"System Error: No images were processed successfully. Please check your API key, internet connection, and the Bria API service status. ({total_time_ms}ms) Error(s): {error_summary}")
-        elif error_messages:
-            # Some images processed, but with errors
-            self.status_label.setText(f"Completed with errors. Processed {success_count}/{total_count} successfully. ({total_time_ms}ms) Error(s): {error_summary}")
-        else:
-            # All images processed successfully
-            self.status_label.setText(f"All images processed successfully ({success_count}/{total_count}) ({total_time_ms}ms)")
+        # Final status update
+        final_status = f"Completed. Processed {success_count}/{total_count} successfully. ({total_time_ms}ms)"
+        if error_messages:
+            final_status += f"\nErrors: {'; '.join(error_messages)}"
+        
+        # Add the result from process_node function
+        for result in futures:
+            final_status += f"\n{result.result()}"
+        
+        self.status_label.setText(final_status)
+        progress.setValue(100)
+        progress.close()
 
-        #QApplication.processEvents()
-            
     def process_node(self, node, api_key, document, context):
         # Prepare the temporary file path
         temp_dir = tempfile.gettempdir()
         temp_file = os.path.join(temp_dir, f"temp_layer_{threading.get_ident()}.jpg")
+        result_file = None
 
         # Create an InfoObject for export configuration
         export_params = InfoObject()
-        export_params.setProperty("quality", 100)
-        export_params.setProperty("forceSRGB", False)
-        export_params.setProperty("saveSRGBProfile", False)
+        export_params.setProperty("quality", 100)  # Use maximum quality for JPEG
+        export_params.setProperty("forceSRGB", True)  # Force sRGB color space
+        export_params.setProperty("saveProfile", False)  # Don't save color profile
+        export_params.setProperty("alpha", True)  # Ensure alpha channel is included
+        export_params.setProperty("flatten", True)  # Prevent flattening of the image
 
-        # Save the active node
+        # Save the active node as JPG
         node.save(temp_file, 1.0, 1.0, export_params, node.bounds())
 
         # Prepare the API request
@@ -252,29 +290,58 @@ class BackgroundRemover(QDockWidget):
                         result_file = os.path.join(temp_dir, f"result_layer_{threading.get_ident()}.png")
                         urllib.request.urlretrieve(result_url, result_file)
 
-                        # Load the image using QImage
-                        image = QImage(result_file)
-                        if image.isNull():
-                            return "Failed to load the result image"
-
-                        # Truncate the active node's name and append " BG Removed"
+                        # Rename layer
                         new_layer_name = (node.name() + " NO BG")
 
-                        # Gets the index of the active layer and then hides it
-                        node_index = document.rootNode().childNodes().index(node)
+                        # Get the color space of the original document
+                        original_color_space = document.colorModel()
+
+                        if original_color_space != "RGBA":
+                            # Create a new document with the downloaded image
+                            app = Krita.instance()
+                            temp_doc = app.createDocument(0, 0, "temp_doc", "RGBA", "U8", "", 300.0)
+                            temp_layer = temp_doc.createNode("temp_layer", "paintlayer")
+                            temp_doc.rootNode().addChildNode(temp_layer, None)
+                            
+                            # Load the image into the layer
+                            image = QImage(result_file)
+                            temp_layer.setPixelData(image.constBits().asstring(image.byteCount()), 0, 0, image.width(), image.height())
+
+                            # Convert the temporary document to the original color space
+                            temp_doc.setColorSpace(original_color_space, document.colorDepth(), document.colorProfile())
+                            temp_doc.refreshProjection()
+
+                            # Copy the layer to the original document
+                            copied_layer = temp_layer.clone()
+                            document.rootNode().addChildNode(copied_layer, node)
+                            copied_layer.setName(new_layer_name)
+
+                            # Close the temporary document
+                            temp_doc.close()
+
+                            result = f"Background removed successfully for {node.name()} (Converted to {original_color_space}, please note that colors may not look like the original image)"
+                        else:
+                            # For RGBA documents, directly create a new layer with the image
+                            new_layer = document.createNode(new_layer_name, "paintlayer")
+                            
+                            # Load the image into the layer
+                            image = QImage(result_file)
+                            new_layer.setPixelData(image.constBits().asstring(image.byteCount()), 0, 0, image.width(), image.height())
+                            
+                            document.rootNode().addChildNode(new_layer, node)
+                            result = f"Background removed successfully for {node.name()}"
+
+                        # Hide the original layer
                         node.setVisible(False)
-                        
-                        # Create a new layer and move to same level as old layer
-                        new_layer = document.createNode(new_layer_name, "paintlayer")
-                        document.rootNode().addChildNode(new_layer, node)
-                        
-                        # Set the pixel data of the new layer
-                        width, height = image.width(), image.height()
-                        pixel_data = image.bits().asstring(image.byteCount())
-                        new_layer.setPixelData(pixel_data, 0, 0, width, height)
-                        
+
                         document.refreshProjection()
-                        return f"Background removed successfully for {node.name()}"
+                        
+                        if self.debug_checkbox.isChecked():
+                            result += f"\nDebug: Temporary files saved at {temp_file} and {result_file}"
+                        else:
+                            os.remove(result_file)
+                        
+                        return result
                     else:
                         return "Error: No result URL in response"
                 else:
@@ -291,13 +358,10 @@ class BackgroundRemover(QDockWidget):
             return "Error: Invalid JSON response"
         except Exception as e:
             return f"Unexpected error: {str(e)}"
-            
+
         finally:
-            # Clean up temporary files
-            if os.path.exists(temp_file):
+            if os.path.exists(temp_file) and not self.debug_checkbox.isChecked():
                 os.remove(temp_file)
-            if 'result_file' in locals() and os.path.exists(result_file):
-                os.remove(result_file)
 
     def handle_error(self, status_code):
         error_messages = {
