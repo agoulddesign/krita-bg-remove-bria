@@ -290,7 +290,7 @@ class BackgroundRemover(QDockWidget):
         export_params.setProperty("quality", 100)  # Use maximum quality for JPEG
         export_params.setProperty("forceSRGB", True)  # Force sRGB color space
         export_params.setProperty("saveProfile", False)  # Don't save color profile
-        export_params.setProperty("alpha", True)  # Ensure alpha channel is included
+        export_params.setProperty("alpha", False)  # No alpha
         export_params.setProperty("flatten", True)  # Prevent flattening of the image
 
         # Save the active node as JPG
