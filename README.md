@@ -43,7 +43,7 @@ Say goodbye to massive servers or third-party apps – isolate subjects effortle
 ### Image Dimensions and Boundaries
 
 - Removing the background of images with different dimensions, or images that extend beyond the visible area, may result in unexpected results.
-- For best results, ensure all layers are the same size and do not extend past the visible area. Use the **Image -> Trim to Image Size** tool for this.
+- For best results, ensure all layers are the same size and do not extend past the visible area. Use the `Image -> Trim to Image Size` tool for this.
 
 ### Batch Mode Processing
 
