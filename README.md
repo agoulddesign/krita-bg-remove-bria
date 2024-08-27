@@ -43,7 +43,7 @@ Say goodbye to massive servers or third-party apps – isolate subjects effortle
 ### Image Dimensions and Boundaries
 
 - Removing the background of images with different dimensions, or images that extend beyond the visible area, may result in unexpected results.
-- For best results, ensure all layers are the same size and do not extend past the visible area.
+- For best results, ensure all layers are the same size and do not extend past the visible area. Use the **Image -> Trim to Image Size** tool for this.
 
 ### Batch Mode Processing
 
@@ -69,8 +69,8 @@ When processing a large number of layers:
 
 ## Known Issues & Future Plans
 
-- **Bug**: Currently only works in RGBA color space
-- **Todo**: Nothing now! Implemented batch mode and placement of layers on removal
+- **Bug**: Currently works with most color spaces, but may cause some color differences with the result image (most notable with CMYK). This is easily fixed if you simply transfer the alpha from the resulting image to the original.
+- **Todo**: Maybe handle different size image layers better
 
 ---
 
