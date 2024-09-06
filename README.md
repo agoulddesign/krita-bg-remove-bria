@@ -58,7 +58,7 @@ When processing a large number of layers:
 
 ## About
 
-- BriaAI uses ethically trained, licensed material for their AI models, ensuring no copyright or ethical concerns.
+- BriaAI uses licensed material to train their AI models, ensuring no copyright concerns.
 - This plugin is not affiliated with BriaAI or Krita.
 - Created primarily with AI assistance – optimizations welcome! Feel free to fork or submit pull requests.
 
