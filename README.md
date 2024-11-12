@@ -10,6 +10,8 @@
 
 Say goodbye to massive servers or third-party apps – isolate subjects effortlessly and quickly within Krita!
 
+### Nov. 2024 Announcement! Bria AI has updated their background removal algorithm, which means an automatic upgrade in the quality and accuracy of background removal with this plugin. No need to update. Enjoy!
+
 ## Setup Instructions
 
 1. Create a free BriaAI account and obtain an API key at [www.bria.ai](http://www.bria.ai).
