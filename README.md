@@ -15,9 +15,9 @@ Say goodbye to massive servers or third-party apps – isolate subjects effortle
 ## Setup Instructions
 
 1. Create a free BriaAI account and obtain an API key at [www.bria.ai](http://www.bria.ai).
-   - No credit card required
+   - No credit card required for first three months
    - 1000 free uses per month
-   - Affordable rates thereafter (~$0.08 per use)
+   - Affordable rates thereafter (~$0.08 per use, pay as you go)
 
 2. Download the plugin and import it into Krita:
    - Navigate to `Tools -> Scripts -> Import Python plugin from file...`
