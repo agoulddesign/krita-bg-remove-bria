@@ -66,7 +66,7 @@ When processing a large number of layers:
 
 ## Compatibility
 
-- Tested with Krita 5.2.2 and 5.2.3
+- Tested with Krita 5.2.2, 5.2.3, 5.2.6
 - May not be compatible with other versions
 
 ## Known Issues & Future Plans
