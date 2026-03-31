@@ -6,18 +6,17 @@
 
 ### A powerful Krita plugin for fast and automatic background removal using BriaAI's API.
 
-**Now with lightning fast batch mode.**
 
 Say goodbye to massive servers or third-party apps – isolate subjects effortlessly and quickly within Krita!
 
+### Apr. 2026 NOTE: BriaAI has changed their pricing plans and removed the 1000 free uses per month, so I am planning on adding a ComfyUI option for this plugin soon. In the meantime if you want decent free background removal see [Krita Vision Tools](https://github.com/Acly/krita-vision-tools). Stay tuned!
 ### Nov. 2024 Announcement! Bria AI has updated their background removal algorithm, which means an automatic upgrade in the quality and accuracy of background removal with this plugin. No need to update. Enjoy!
 
 ## Setup Instructions
 
-1. Create a free BriaAI account and obtain an API key at [www.bria.ai](http://www.bria.ai).
-   - No credit card required for first three months
-   - 1000 free uses per month
-   - Affordable rates thereafter (~$0.08 per use, pay as you go)
+1. Create a BriaAI account and obtain an API key at [www.bria.ai](http://www.bria.ai).
+   - 14 day free trial
+   - Affordable rates thereafter (~$0.018 per use, pay as you go option)
 
 2. Download the plugin and import it into Krita:
    - Navigate to `Tools -> Scripts -> Import Python plugin from file...`
